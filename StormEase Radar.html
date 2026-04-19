@@ -631,7 +631,7 @@ function toggleSatellite() {
 //  NWS ALERTS
 // ═══════════════════════════════════
 async function refreshAlerts() {
-  document.getElementById('sbLoading').classList.add('blink');
+  document.getElementById('sbLoading')?.classList.add('blink');
   try {
     const res = await fetch('https://api.weather.gov/alerts/active?area=IN&status=actual',
       { headers: { 'User-Agent': 'StormEase/1.0' } });
@@ -662,7 +662,7 @@ async function refreshAlerts() {
     // Re-fetch polygons if layer is on
     if (radarsOn.alertlayer) fetchAlertPolygons();
 
-    document.getElementById('sbLoading').classList.remove('blink');
+    document.getElementById('sbLoading')?.classList.remove('blink');
   } catch(e) {
     document.getElementById('alertList').innerHTML = `<div class="al-none" style="color:#ff4444">⚠ NWS error: ${e.message}</div>`;
   }
