@@ -212,19 +212,43 @@ html, body {
 .fc-precip { font-size:8px; font-family:var(--font-mono); color:var(--blue3); margin-top:3px; }
 .fc-loading { grid-column:1/-1; text-align:center; font-family:var(--font-mono); font-size:9px; color:var(--dim); padding:20px; letter-spacing:1px; animation:blink .8s steps(1) infinite; }
 
-/* ── MATRICES ── */
-.matrix-wrap { padding:0 12px 12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.matrix-label { font-family:var(--font-mono); font-size:8px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin-bottom:5px; padding-bottom:4px; border-bottom:1px solid var(--border); }
-.matrix-grid { display:flex; flex-direction:column; gap:3px; }
-.matrix-item { padding:5px 8px; background:var(--card); border:1px solid var(--border); border-radius:5px; transition:border-color .2s; }
-.matrix-item.active { border-color:var(--blue); background:rgba(75,156,211,.08); }
-.matrix-item.active .mi-t { color:var(--blue3); }
-.matrix-item.active .mi-s { color:rgba(75,156,211,.55); }
-.matrix-item.warn { border-color:var(--gold); background:rgba(245,168,0,.06); }
-.matrix-item.warn .mi-t { color:var(--gold); }
-.matrix-item.warn .mi-s { color:rgba(245,168,0,.5); }
-.mi-t { font-size:9px; font-weight:700; color:var(--dim); line-height:1.3; }
-.mi-s { font-size:8px; color:var(--dim2); margin-top:1px; }
+/* ── LOCATION PICKER ── */
+.location-wrap { padding:0 12px 14px; }
+.loc-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:5px;
+  margin-bottom:8px;
+}
+.loc-btn {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:6px; padding:7px 6px;
+  text-align:center; cursor:pointer;
+  transition:all .18s; user-select:none;
+}
+.loc-btn:hover { border-color:var(--border2); background:#484848; }
+.loc-btn.active { border-color:var(--blue); background:rgba(75,156,211,.1); }
+.loc-btn.active .lb-city { color:var(--blue3); }
+.lb-city { font-size:10px; font-weight:700; color:var(--dim); line-height:1.2; transition:color .18s; }
+.lb-county { font-size:8px; color:var(--dim2); font-family:var(--font-mono); margin-top:1px; }
+.loc-custom {
+  display:flex; gap:6px; align-items:center;
+  padding:8px 10px; background:var(--card);
+  border:1px solid var(--border); border-radius:6px; margin-top:2px;
+}
+.loc-custom label { font-family:var(--font-mono); font-size:8px; letter-spacing:.8px; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
+.loc-custom input {
+  flex:1; background:transparent; border:none; border-bottom:1px solid var(--border2);
+  color:var(--txt); font-family:var(--font-mono); font-size:10px;
+  padding:2px 4px; outline:none; min-width:0;
+}
+.loc-custom input:focus { border-color:var(--blue); }
+.loc-custom input::placeholder { color:var(--dim2); }
+.loc-custom button {
+  background:rgba(75,156,211,.15); border:1px solid rgba(75,156,211,.3);
+  color:var(--blue3); font-family:var(--font-mono); font-size:8px;
+  letter-spacing:.5px; padding:4px 10px; border-radius:4px;
+  cursor:pointer; text-transform:uppercase; white-space:nowrap; transition:background .15s;
+}
+.loc-custom button:hover { background:rgba(75,156,211,.28); }
 
 .divider { height:1px; background:var(--border); margin:0 12px; }
 
@@ -378,7 +402,7 @@ html, body {
   <div class="divider"></div>
 
   <!-- 7-DAY FORECAST -->
-  <div class="section-label">7-Day Forecast · Kokomo, IN</div>
+  <div class="section-label">7-Day Forecast · <span id="fcLocationLabel">Kokomo, IN</span></div>
   <div class="forecast-wrap">
     <div class="forecast-strip" id="forecastStrip">
       <div class="fc-loading">Fetching forecast…</div>
@@ -387,26 +411,42 @@ html, body {
 
   <div class="divider"></div>
 
-  <!-- THREAT MATRICES -->
-  <div class="section-label">Threat Reference Matrices</div>
-  <div class="matrix-wrap">
-    <div class="matrix-block">
-      <div class="matrix-label">❄ Hail Damage (inches)</div>
-      <div class="matrix-grid" id="hailMatrix">
-        <div class="matrix-item" data-thresh="1.25"><div class="mi-t">Roofing Material</div><div class="mi-s">0.75 – 1.25"</div></div>
-        <div class="matrix-item" data-thresh="1.75"><div class="mi-t">Siding Damage</div><div class="mi-s">1.25 – 1.75"</div></div>
-        <div class="matrix-item" data-thresh="2.00"><div class="mi-t">Vehicle Body Dents</div><div class="mi-s">1.00 – 2.00"</div></div>
-        <div class="matrix-item" data-thresh="3.00"><div class="mi-t">Glass Shatter Risk</div><div class="mi-s">2.00 – 3.00"</div></div>
+  <!-- FORECAST LOCATION PICKER -->
+  <div class="section-label" id="forecastLabel">Forecast Location</div>
+  <div class="location-wrap">
+    <div class="loc-grid">
+      <div class="loc-btn active" data-lat="40.4864" data-lon="-86.1336" data-name="Kokomo, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Kokomo</div><div class="lb-county">Howard Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="39.7684" data-lon="-86.1581" data-name="Indianapolis, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Indianapolis</div><div class="lb-county">Marion Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="40.4167" data-lon="-86.8753" data-name="Lafayette, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Lafayette</div><div class="lb-county">Tippecanoe Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="40.5584" data-lon="-85.6591" data-name="Marion, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Marion</div><div class="lb-county">Grant Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="40.7542" data-lon="-86.3567" data-name="Logansport, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Logansport</div><div class="lb-county">Cass Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="40.1934" data-lon="-85.3864" data-name="Muncie, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Muncie</div><div class="lb-county">Delaware Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="41.0753" data-lon="-85.1394" data-name="Fort Wayne, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Fort Wayne</div><div class="lb-county">Allen Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="41.6764" data-lon="-86.2520" data-name="South Bend, IN" onclick="selectLocation(this)">
+        <div class="lb-city">South Bend</div><div class="lb-county">St. Joseph Co.</div>
+      </div>
+      <div class="loc-btn" data-lat="37.9716" data-lon="-87.5711" data-name="Evansville, IN" onclick="selectLocation(this)">
+        <div class="lb-city">Evansville</div><div class="lb-county">Vanderburgh Co.</div>
       </div>
     </div>
-    <div class="matrix-block">
-      <div class="matrix-label">💨 Wind Gusts (mph)</div>
-      <div class="matrix-grid" id="windMatrix">
-        <div class="matrix-item" data-start="25"><div class="mi-t">Strong Breeze (25–38)</div><div class="mi-s">Minor outdoor shifting</div></div>
-        <div class="matrix-item" data-start="39"><div class="mi-t">Gale-Force (39–57)</div><div class="mi-s">Branches break, roof risk</div></div>
-        <div class="matrix-item" data-start="58"><div class="mi-t">Severe Winds (58–74)</div><div class="mi-s">Shingles rip, limb falls</div></div>
-        <div class="matrix-item" data-start="75"><div class="mi-t">Destructive (75+)</div><div class="mi-s">Structural damage likely</div></div>
-      </div>
+    <div class="loc-custom">
+      <label>City, State</label>
+      <input type="text" id="customCity" placeholder="e.g. Terre Haute, IN">
+      <button onclick="geocodeCustom()">→ Go</button>
     </div>
   </div>
 
@@ -577,7 +617,7 @@ async function fetchAlerts(){
       const hm=d.match(/(\d+\.?\d*)\s*inch.*hail/i); if(hm)maxH=Math.max(maxH,parseFloat(hm[1]));
       const wm=d.match(/wind\w*\s+(?:up to|gusts?|gusting to)?\s*(\d+)\s*mph/i); if(wm)maxW=Math.max(maxW,parseInt(wm[1]));
     });
-    updateMatrices(maxH,maxW);
+
     const now=new Date();
     document.getElementById('lastSync').textContent='SYNC '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('reportTs').textContent='AS OF '+now.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
@@ -622,19 +662,46 @@ function updateStatusChips(alerts){
     return`<span class="status-chip" style="background:${s.badge};color:${lightBadge(s.badge)}">${n}× ${ev}</span>`;
   }).join('')+'<span class="status-sync" id="lastSync">—</span>';
 }
-function updateMatrices(hail,wind){
-  document.querySelectorAll('#hailMatrix .matrix-item').forEach(el=>el.classList.toggle('active',hail>=parseFloat(el.dataset.thresh)));
-  document.querySelectorAll('#windMatrix .matrix-item').forEach(el=>{
-    const s=parseInt(el.dataset.start),active=wind>0&&wind>=s;
-    el.classList.toggle('active',active&&s>=58); el.classList.toggle('warn',active&&s<58);
-  });
+
+
+/* ── LOCATION STATE ── */
+let currentLat = 40.4864, currentLon = -86.1336, currentLocName = 'Kokomo, IN';
+
+function selectLocation(btn) {
+  document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentLat = parseFloat(btn.dataset.lat);
+  currentLon  = parseFloat(btn.dataset.lon);
+  currentLocName = btn.dataset.name;
+  document.getElementById('fcLocationLabel').textContent = currentLocName;
+  document.getElementById('forecastStrip').innerHTML = '<div class="fc-loading">Loading…</div>';
+  fetchForecast();
+}
+
+async function geocodeCustom() {
+  const raw = document.getElementById('customCity').value.trim();
+  if (!raw) return;
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(raw)}&format=json&limit=1`,
+      { headers:{'Accept-Language':'en','User-Agent':'StormEase/1.0'} });
+    const d = await r.json();
+    if (!d.length) { alert('Location not found. Try "City, State" format.'); return; }
+    currentLat = parseFloat(d[0].lat);
+    currentLon  = parseFloat(d[0].lon);
+    currentLocName = d[0].display_name.split(',').slice(0,2).join(',').trim();
+    document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('fcLocationLabel').textContent = currentLocName;
+    document.getElementById('forecastStrip').innerHTML = '<div class="fc-loading">Loading…</div>';
+    fetchForecast();
+  } catch(e) { alert('Geocode error: ' + e.message); }
 }
 
 /* ── FORECAST ── */
 const WX={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌦️',82:'⛈️',85:'🌨️',86:'🌨️',95:'⛈️',96:'⛈️',99:'⛈️'};
 async function fetchForecast(){
   try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.4864&longitude=-86.1336&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&timezone=America%2FChicago&forecast_days=7');
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&timezone=auto&forecast_days=7`;
+    const r=await fetch(url);
     if(!r.ok)throw new Error('failed');
     const d=await r.json();
     const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
