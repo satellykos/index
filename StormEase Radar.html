@@ -228,17 +228,25 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--txt);font-fami
 }
 
 /* ── NOTIFICATION PANEL ── */
+#notifOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 8999;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+#notifOverlay.show { opacity: 1; pointer-events: all; }
 #notifPanel {
-  position: absolute;
+  position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: 300px;
+  width: 320px;
   background: #0a0f18;
   border-left: 1px solid var(--border2);
-  z-index: 1500;
+  z-index: 9000;
   display: flex; flex-direction: column;
   transform: translateX(100%);
   transition: transform .3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -6px 0 24px rgba(0,0,0,.6);
+  box-shadow: -6px 0 28px rgba(0,0,0,.75);
 }
 #notifPanel.open { transform: translateX(0); }
 .np-header {
@@ -259,7 +267,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--txt);font-fami
   display: inline-block; font-family: var(--font-mono); font-size: 8px;
   padding: 2px 8px; border-radius: 3px; letter-spacing: .5px; text-transform: uppercase;
 }
-.np-body { flex: 1; overflow-y: auto; padding: 14px; }
+.np-body { flex: 1; overflow-y: auto; padding: 14px; min-height: 0; }
 .np-body::-webkit-scrollbar { width: 3px; }
 .np-body::-webkit-scrollbar-thumb { background: var(--border2); }
 .np-section-title {
@@ -510,7 +518,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--txt);font-fami
     </div>
   </div>
 
-  <!-- NOTIFICATION PANEL -->
+  <!-- NOTIFICATION OVERLAY + PANEL -->
+  <div id="notifOverlay" onclick="closeNotifPanel()"></div>
   <div id="notifPanel">
     <div class="np-header">
       <div>
@@ -552,11 +561,6 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--txt);font-fami
           <label class="np-pref-item"><input type="checkbox"><span class="pref-dot" style="background:#00ff41"></span><span class="pref-name">Special Statements</span></label>
         </div>
         <button class="np-submit" onclick="submitNotif()">Subscribe to Alerts</button>
-        <div class="np-note">
-          ⚠ Note: Notifications require a backend service. Configure your
-          Formspree or email endpoint in the submitNotif() function. This UI is
-          fully wired — just plug in your endpoint URL.
-        </div>
       </div>
       <div class="np-success" id="npSuccess">
         ✅<br><br>Subscribed!<br><br>
@@ -1305,10 +1309,12 @@ function openNotifPanel(countyName, alertInfo) {
   document.getElementById('npForm').style.display = 'block';
   document.getElementById('npSuccess').classList.remove('show');
   document.getElementById('notifPanel').classList.add('open');
+  document.getElementById('notifOverlay').classList.add('show');
 }
 
 function closeNotifPanel() {
   document.getElementById('notifPanel').classList.remove('open');
+  document.getElementById('notifOverlay').classList.remove('show');
 }
 
 function npMethodChange() {
@@ -1331,31 +1337,40 @@ function submitNotif() {
   const prefs = [...document.querySelectorAll('.np-alert-prefs input:checked')]
     .map(cb => cb.closest('.np-pref-item').querySelector('.pref-name').textContent);
 
-  // ── CONFIGURE YOUR ENDPOINT HERE ──
-  // Option A: Formspree (free) — create account at formspree.io, replace YOUR_FORM_ID
-  // const endpoint = 'https://formspree.io/f/xeevlnwj';
-  // Option B: Any REST endpoint that accepts JSON POST
-  // const endpoint = 'https://your-api.com/subscribe';
-  //
+  const btn = document.querySelector('.np-submit');
+  btn.textContent = 'Sending…';
+  btn.disabled = true;
+
+  const endpoint = 'https://formspree.io/f/xeevlnwj';
+
   const payload = {
-  county:  npCurrentCounty,
-  method:  method,
-  contact: contact,
-  alerts:  prefs.join(', '),
-  _subject: `StormEase Alert Subscription — ${npCurrentCounty} County`
-};
+    county:   npCurrentCounty,
+    method:   method,
+    contact:  contact,
+    alerts:   prefs.join(', '),
+    _subject: 'StormEase Subscription — ' + npCurrentCounty + ' County'
+  };
 
-fetch(endpoint, {
-  method:  'POST',
-  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-  body:    JSON.stringify(payload)
-}).catch(err => console.warn('Formspree error:', err));
-
-  // Show success state
-  document.getElementById('npForm').style.display = 'none';
-  document.getElementById('npSuccessCounty').textContent = npCurrentCounty + ' County';
-  document.getElementById('npSuccess').classList.add('show');
-  setTimeout(closeNotifPanel, 3000);
+  fetch(endpoint, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body:    JSON.stringify(payload)
+  }).then(r => {
+    btn.textContent = 'Subscribe to Alerts';
+    btn.disabled = false;
+    if (!r.ok) {
+      alert('Submission failed (status ' + r.status + '). Check your Formspree dashboard.');
+      return;
+    }
+    document.getElementById('npForm').style.display = 'none';
+    document.getElementById('npSuccessCounty').textContent = npCurrentCounty + ' County';
+    document.getElementById('npSuccess').classList.add('show');
+    setTimeout(closeNotifPanel, 3000);
+  }).catch(() => {
+    btn.textContent = 'Subscribe to Alerts';
+    btn.disabled = false;
+    alert('Network error — please check your connection and try again.');
+  });
 }
 
 // ── INIT ── load states first, then fetch alerts once map is ready
