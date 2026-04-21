@@ -1333,12 +1333,23 @@ function submitNotif() {
 
   // ── CONFIGURE YOUR ENDPOINT HERE ──
   // Option A: Formspree (free) — create account at formspree.io, replace YOUR_FORM_ID
-  // const endpoint = 'https://formspree.io/f/YOUR_FORM_ID';
+  // const endpoint = 'https://formspree.io/f/xeevlnwj';
   // Option B: Any REST endpoint that accepts JSON POST
   // const endpoint = 'https://your-api.com/subscribe';
   //
-  // For now, log to console and show success UI.
-  console.log('StormEase subscription:', { county: npCurrentCounty, method, contact, prefs });
+  const payload = {
+  county:  npCurrentCounty,
+  method:  method,
+  contact: contact,
+  alerts:  prefs.join(', '),
+  _subject: `StormEase Alert Subscription — ${npCurrentCounty} County`
+};
+
+fetch(endpoint, {
+  method:  'POST',
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body:    JSON.stringify(payload)
+}).catch(err => console.warn('Formspree error:', err));
 
   // Show success state
   document.getElementById('npForm').style.display = 'none';
